@@ -1,16 +1,12 @@
 {
-  "name": "mytweets",
+  "name": "AngularTweets",
   "version": "0.0.1",
-  "main": "index.js",
+  "main": "server/server.js",
   "scripts": {
-    "test": "mocha server/serverTests"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Platypi",
   "license": "MIT",
-  "dependencies": {},
-  "devDependencies": {
-    "mocha": "^1.21.4",
-    "request": "^2.34.0",
-    "chai": "^1.9.0"
+  "dependencies": {
   }
 }
