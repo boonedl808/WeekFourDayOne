@@ -1,55 +1,101 @@
-/* Require node modules to implement */
-var http = require('http');
 var fs = require('fs');
 var path = require('path');
 var url = require('url');
 
-/*createServer takes in a function to handle requests. Here is where you can create a handler for get and post requests. Note: req(request) and res(response) come from node's http module. They include both incoming information like urls and outgoing like content */
+function getFileExtension(route) {
+    var arr = route.split('.');
+    if(arr.length<=1) {
+        return 'html'
+    }
+    return arr[arr.length -1].toLowerCase();
+}
 
-/*In order to complete the project, this callback will need to handle get requests, post requests and server up other files like css.
+function handleRequests(req, res) {
+    var header;
+    var route = url.parse(req.url).path;
+    if(route === '/') {
+        route = '/index.html';
+    }
+    var ext = getFileExtension(route);
+    switch (ext) {
+        case 'css':
+            header = {
+                'Content-Type': 'text/css'
+            };
+            break;
+        case 'js':
+            header = {
+                'Content-Type': 'application/javascript'
+            };
+            break;
+        case 'html':
+            header = {
+                'Content-Type': 'text/html'
+            };
+            break;
+        default:
+            header = {
+                'Content-Type': 'application/json'
+            };
+            break;
+    }
+    
+    var filePath;
+    if(route === '/messages') {
+        if(req.method === 'GET') {
+            filePath = path.join(__dirname, './messages.txt');
+            readFile(filePath, function(data){
+                writeResponse(res, data, header)    
+            });
+        }
+        if(req.method === 'POST') {
+            var body = '';
+            req.on('data', function (data) {
+                body += data;
+            });
+            req.on('end', function () {
+                writeTweet(JSON.parse(body), res);
+            });
+        }
+    } else {
+        
+        filePath = path.join(__dirname, '../client' + route);
+        readFile(filePath, function(data){
+            writeResponse(res, data, header)    
+        });
+    }
+}
 
-Hint: creating a function to replace the anonymous function may be useful.
-		EXAMPLE:
-		function requestHandler(req, res) {
-			if(request url === '/'){
-				// handle this way
-			} else if(request url === '/messages'){
-				if(request method  === 'GET'){
-					// handle this way
-				}
+function writeTweet(tweet, res) {
+    if(tweet.text && tweet.userName) {
+        var filePath = __dirname + '/messages.txt'; 
+        readFile(filePath, function(data){
+            var tweets = JSON.parse(data);
+            tweets.push(tweet);
+            fs.writeFile(filePath,JSON.stringify(tweets), function(err){
+                res.writeHead(201);
+                res.end();
+            });    
+        });
+    } else {
+        console.log('server error');
+        res.writeHead(500);
+        res.end();
+    }
+}
 
-				...
-		};
+function writeResponse(res, data, header) {
+    var statusCode = statusCode || 200;
+    res.writeHead(statusCode, header);
+    res.end(data);
+}
 
-		var server = http.createServer(requestHandler)
+function readFile(filePath, callBack) {
+    fs.readFile(filePath, function (err, data) {
+        callBack(data);
+    });
+}
 
-
-*/
-var server = http.createServer(function(req, res){
-
-	/* file path to the index.html file using path module */
-	var file = path.join(__dirname, './client/index.html');
-
-	  fs.readFile(file, function (err, data) {
-		var statusCode = statusCode || 200;
-		var header = {
-			//Content-Type will need to be changed if it is something other than html, like: js,css or json
-			'Content-Type': 'text/html'
-		};
-
-		/* writeHead writes a response which includes statusCodes and header*/
-		res.writeHead(statusCode, header);
-
-		/*indicates conclusion of the response https://nodejs.org/api/http.html#http_response_end_data_encoding_callback*/
-		res.end(data);
-	  });
-
-
-});
-
-/*Requests are completed over port numbers and each one needs a unique number. Most port numbers between 0 - 1024 are reserved so here 3000 is a standard testing port to use. More on port numbers: https://en.wikipedia.org/wiki/Port_(computer_networking) */
-var port = 3000;
-
-server.listen(port);
-console.log('Listening on port', port);
-
+module.exports = {
+    handleRequests: handleRequests
+};
